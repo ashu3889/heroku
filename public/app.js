@@ -28,7 +28,7 @@ myapp.config(function($urlRouterProvider, $stateProvider){
 	.state('reactjs' ,{
 		url :'/reactjs?portfolioId&dataID',
 		templateUrl :'template/react.html',
-		controller :'reactjsController'		
+		controller :'crudContrroller'		
 	})
 	.state('redux' ,{
 		url :'/redux',
@@ -137,4 +137,62 @@ myapp.filter('startFrom', function() {
 		}
 		return [];
 	}
+});
+
+
+
+myapp.controller('crudContrroller', function($scope , $http){
+	
+	 /*$http.get('/api/about').success(function(response){		
+		console.log('the data came from server is' + response);
+		$scope.liData = response.docum;		
+	});	*/
+	
+	
+	$scope.init = function() {
+		
+        $http.get('/employee/emp').success(function(response){			 
+			 $scope.tabledata = response.docum;	
+		 });
+     };
+	
+	$scope.init();
+	
+	$scope.beginUpdate = function(data){
+		//$scope.doc = data;
+		$scope.doc = angular.copy(data)
+		
+	}
+	
+	$scope.updateEmployee = function(doc){
+		
+		console.log(JSON.stringify(doc));
+		
+		$http.put('/employee/emp', doc).success(function(response){			 
+			 console.log('employee updated successfully');
+			 $scope.refresh();			 
+		 });
+	}
+	
+	$scope.deleteEmployee = function(id){
+	
+		$http.delete('/employee/emp/' + id).success(function(response){			 
+			 $scope.refresh();
+		 });
+	};
+	
+	$scope.refresh = function(){		
+		 $http.get('/employee/emp').success(function(response){			 
+			 $scope.tabledata = response.docum;	
+		 });
+	};
+	
+	$scope.addEmployee = function(data){
+		//$scope.doc = '';
+		console.log(JSON.stringify(data));
+		 $http.post('/employee/emp' , data).success(function(response){			 
+			 console.log('employee addedd successfully');
+			 $scope.refresh();			 
+		 });		
+	};
 });

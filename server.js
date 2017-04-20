@@ -2,6 +2,7 @@ var express = require('express');
 var app = express();
 var bodyparser = require('body-parser');
 app.use(bodyparser.urlencoded({ extended: false }));
+app.use(bodyparser.json());
 app.use(express.static(__dirname + '/public'));
 
 //setup mongoose connection
@@ -24,15 +25,23 @@ var paginationSchema = mongoose.Schema({
 	 age : Number
 });
 
+var employeeSchema = mongoose.Schema({
+	 name:  String,
+     address:  String,
+	 age : Number
+});
+
 var listModel = mongoose.model('listMod' , listSchema);
 
 var paginationModel = mongoose.model('paginationMod' , paginationSchema);
+
+var employeeModel = mongoose.model('employeeMod' , employeeSchema);
 
 
 
 
 //post data on first time
-/*paginationModel.create(dummydata, function(err, docs){
+/*employeeSchema.create(dummydata, function(err, docs){
 	 if(err){		
 		 console.log('data save error' + err);
 	 }
@@ -81,13 +90,13 @@ listModel.find(function(err, docs){
 //setup angular Router
 var router = express.Router();
 
+var employeeRouter = express.Router();
+
 
  router.route('/:name').put(function(req, res) {
   
     var findname = req.params.name;
-	var updatename = req.body.newname;
-	
-	console.log('call hua bhai');
+	var updatename = req.body.newname;	
  
     listModel.findById(req.params.name,function(err, doc){
 		if(err){
@@ -156,8 +165,90 @@ var router = express.Router();
 	})  
   });*/
   
+  
+  employeeRouter.route('/emp').put(function(req, res) {
+  
+    
+ 
+        var id = req.body._id;	
+		console.log('employee id isssssss' + id);
+ 
+    employeeModel.findById(id,function(err, doc){
+		if(err){
+		console.log('error occurs');
+	    }
+		else{
+			 console.log('doc doc name' +  doc);
+			doc.name = req.body.name;
+			doc.email = req.body.email;
+			doc.age = req.body.age;	
+			 
+			
+             doc.save(function(err) {
+                 if (err)
+                     res.send(err);
+
+                 res.json({ message: 'doc updated!' , docum : doc });
+             });	
+			
+		}
+		
+	})
+  
+    });
+  
+   employeeRouter.route('/emp/:id').delete(function(req, res) {
+  
+       var employeeOid = req.params.id;
+  
+  
+        employeeModel.findByIdAndRemove(employeeOid ,function(err, doc){
+		            if(err){
+		                console.log('error occurs');
+	                }
+		            else{
+			           console.log('success occurs');
+			           res.json({ message: 'doc updated!' , docum : doc });	
+		        }		
+	    })  
+  
+    });
+  
+   employeeRouter.route('/emp').get(function(req, res) {
+  
+        employeeModel.find(function(err, doc){
+		            if(err){
+		                console.log('error occurs');
+	                }
+		            else{
+			           console.log('success occurs');
+			           res.json({ message: 'doc updated!' , docum : doc });	
+		        }		
+	    })  
+  
+    });
+  
+  
+   employeeRouter.route('/emp').post(function(req, res) {
+  
+    var data = req.body;
+ 
+          employeeModel.create(data, function(err, docs){
+	               if(err){		
+		                     console.log('data save error' + err);
+	                    }
+	               else{
+	                     console.log('data save successfull');
+                         res.json({ message: 'doc updated!' , docum : docs });		 
+	         }
+
+         });
+  
+    });
+  
 
 app.use('/api' , router);
+app.use('/employee' , employeeRouter);
 
 //var port  = process.env.PORT || 3000;
 
