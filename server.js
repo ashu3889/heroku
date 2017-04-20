@@ -180,7 +180,7 @@ var employeeRouter = express.Router();
 		else{
 			 console.log('doc doc name' +  doc);
 			doc.name = req.body.name;
-			doc.email = req.body.email;
+			doc.address = req.body.address;
 			doc.age = req.body.age;	
 			 
 			
