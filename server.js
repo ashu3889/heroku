@@ -1,16 +1,177 @@
 var express = require('express');
 var app = express();
 var bodyparser = require('body-parser');
+var busboyBodyParser = require('busboy-body-parser');
 app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
+app.use(busboyBodyParser());
 app.use(express.static(__dirname + '/public'));
+
 
 //setup mongoose connection
 var mongoose= require('mongoose');
 mongoose.Promise = global.Promise;
 mongoose.connect('mongodb://ashu3889:amma2011@ds161410.mlab.com:61410/pagination');
-
 var db = mongoose.connection;
+
+//connect gridfs and mongodb
+
+//file upload module
+var path = require('path');
+var Grid = require('gridfs-stream');
+var fs = require('fs');
+//var imagepath = path.join(__dirname , "pexels-photo-383838.jpeg");
+
+var Grid = require('gridfs-stream');
+Grid.mongo = mongoose.mongo;
+var gfs = new Grid(mongoose.connection.db);
+
+
+app.route('/upload').post(function(req, res) {
+	
+	    	var part = req.files.myfile;
+ 
+                var writeStream = gfs.createWriteStream({
+                    filename: part.name,
+    				mode: 'w',
+                    content_type:part.mimetype
+                }); 
+ 
+                writeStream.on('close', function() {
+                     return res.status(200).send({
+						message: 'Success'
+					});
+                });                
+                writeStream.write(part.data); 
+                writeStream.end();
+ 
+});
+
+app.route('/upload/:filename').get(function(req, res) {
+ 
+	gfs.files.find({ filename: req.params.filename }).toArray(function (err, files) {
+ 
+ 	    if(files.length===0){
+			return res.status(400).send({
+				message: 'File not found'
+			});
+ 	    }
+	
+		/*res.writeHead(200, {'Content-Type': files[0].contentType});
+		
+		var readstream = gfs.createReadStream({
+			  filename: files[0].filename
+		});
+ 
+	    readstream.on('data', function(data) {
+	        res.write(data);
+	    });
+	    
+	    readstream.on('end', function() {
+	        res.end();        
+	    });
+ 
+		readstream.on('error', function (err) {
+		  console.log('An error occurred!', err);
+		  throw err;
+		});*/
+		
+		var rstream = gfs.createReadStream({
+			  filename: files[0].filename
+		});
+
+var bufs = [];
+var imagesrc  = '';
+
+rstream.on('data', function(chunk) {
+
+    bufs.push(chunk);
+
+}).on('end', function() { // done
+
+    var fbuf = Buffer.concat(bufs);
+
+    var base64 = (fbuf.toString('base64'));
+
+	var imagesrc = "data:" + files[0].contentType + ";base64," + base64;
+    res.send(imagesrc);
+});
+		
+		
+		 console.log(imagesrc);
+		
+	});
+ 
+});
+	
+	
+app.route('/upload').get(function(req, res) {
+ 
+	gfs.files.find({}).toArray(function (err, files) {
+ 
+ 	    if(files.length===0){
+			return res.status(400).send({
+				message: 'File not found'
+			});
+ 	    }
+	
+	
+	console.log('files.length' + files.length);
+		res.writeHead(200, {'Content-Type': files[0].contentType});
+		
+		var readstream = gfs.createReadStream({
+			  filename: files[1].filename
+		});
+ 
+	    readstream.on('data', function(data) {
+	        res.write(data);
+	    });
+	    
+	    readstream.on('end', function() {
+	        res.end();        
+	    });
+ 
+		readstream.on('error', function (err) {
+		  console.log('An error occurred!', err);
+		  throw err;
+		});
+	});
+ 
+});
+
+/*db.once('open' , function(){
+	
+	console.log('connection is opened');
+	
+	var gfs = Grid(db.db);
+	
+	
+	fs.createReadStream(imagepath).pipe(writeStream);
+	
+	var writeStream = gfs.createWriteStream({		
+		filename: 'ashimage.jpeg'
+	});	
+	
+	writeStream.on('close' , function(file){
+		console.log('file is saved to db');
+		
+	});
+	
+	//first read file to begin write
+	var createReadStream = gfs.createReadStream({
+		filename : 'ashimage.jpeg'
+	});
+	
+	var createWriteStream = fs.createWriteStream(path.join(__dirname + '/public' , "downloaded.jpeg"));
+	
+	createReadStream.pipe(createWriteStream);
+	
+	createWriteStream.on('close' , function(){
+		console.log('file is written to db');
+	});
+	
+});*/
+
 
 //now use mongoose to create a mongoose schema
 
@@ -92,6 +253,10 @@ var router = express.Router();
 
 var employeeRouter = express.Router();
 
+var uploadRouter = express.Router();
+
+
+
 
  router.route('/:name').put(function(req, res) {
   
@@ -124,7 +289,7 @@ var employeeRouter = express.Router();
   
   router.get('/about', function(req, res){
 	  
-	  console.log("about call called ashutosh");
+	  
       listModel.find(function(err, doc){
 		if(err){
 		console.log('error occurs');
@@ -139,7 +304,7 @@ var employeeRouter = express.Router();
 
   router.get('/pagination', function(req, res){
 	  
-	  console.log("about call called ashutosh");
+	 
       paginationModel.find(function(err, doc){
 		if(err){
 		console.log('error occurs');
@@ -227,12 +392,15 @@ var employeeRouter = express.Router();
 	    })  
   
     });
+	
+	
+
   
   
    employeeRouter.route('/emp').post(function(req, res) {
   
     var data = req.body;
- 
+ console.log('upload pic data is called' + data);
           employeeModel.create(data, function(err, docs){
 	               if(err){		
 		                     console.log('data save error' + err);
@@ -246,9 +414,18 @@ var employeeRouter = express.Router();
   
     });
   
+  
+  uploadRouter.route('/pic').post(function(req, res) {
+  
+    var data = req;
+ 
+       console.log('received data is' + data); 
+  
+    });
 
 app.use('/api' , router);
 app.use('/employee' , employeeRouter);
+app.use('/upload' , uploadRouter);
 
 //var port  = process.env.PORT || 3000;
 

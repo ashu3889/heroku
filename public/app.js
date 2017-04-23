@@ -22,24 +22,24 @@ myapp.config(function($urlRouterProvider, $stateProvider){
 	})
 	.state('emberjs' ,{
 		url :'/emberjs',
-		template :'<div class="alert alert-info">Hello world emberjs</div>',
+		templateUrl :'template/uploadedchart.html',
 		controller :'emberjsController'		
 	})
 	.state('reactjs' ,{
-		url :'/reactjs?portfolioId&dataID',
+		url :'/reactjs',
 		templateUrl :'template/react.html',
-		controller :'crudContrroller'		
-	})
+		controller :'crudContrroller'
+		})
 	.state('redux' ,{
 		url :'/redux',
 		template :'<div class="alert alert-info" >Hello world redux</div>',
-		controller :'reduxController'		
-	})
-	.state('mongoose' ,{
+		controller :'reduxController'
+		})
+    .state('mongoose' ,{
 		url :'/mongoose',
-		template :'<div class="alert alert-info">Hello world mongoose</div>',
-		controller :'reduxController'		
-	})
+		templateUrl :'template/trading.html',
+		controller :'tradingController'
+		})
 	.state('mean' ,{
 		url :'/mean',
 		template :'<div class="alert alert-info">Hello world mean</div>',
@@ -51,6 +51,115 @@ myapp.config(function($urlRouterProvider, $stateProvider){
 		controller :'customController'		
 	})
 });
+
+
+myapp.controller('emberjsController', function($scope ,$http){	
+
+                   // $scope.thumbnail = {};
+                   // $scope.thumbnail.dataUrl = e.target.result;
+			
+ 
+
+$scope.dataavail = 0;
+
+		$http.get('/upload/pexels-photo-383838.jpeg').success(function(response){			 
+			 console.log('data received' + response);
+			// $scope.imagesrc = "data:image/jpeg;base64," + response;
+               $scope.imagesrc = response;			
+             $scope.dataavail = 1;			
+		 });
+				
+				
+});
+
+ myapp.directive('fileModel', ['$parse', function($parse) {
+    return {
+        restrict: 'A',
+        link: function(scope, element, attrs) {
+            var parsedFile = $parse(attrs.fileModel);
+            var parsedFileSetter = parsedFile.assign;
+
+            element.bind('change', function() {
+                scope.$apply(function() {
+                    parsedFileSetter(scope, element[0].files[0]);
+                });
+            });
+        }
+    };
+}]);
+      
+
+ myapp.service('uploadFile', function($http) {
+    this.upload = function(file) {
+        var fd = new FormData();
+        fd.append('myfile', file.upload);
+		
+        return $http.post('/upload', fd, {
+            transformRequest: angular.identity,
+            headers: { 'Content-Type': undefined }
+        });
+		
+		
+		/*return $http.post('/upload/pic', fd).success(function(response){			 
+			 console.log('some success occurs');
+					 
+		 });*/
+		 
+		 
+    };
+
+});
+		 
+  myapp.controller('tradingController', ['$scope','uploadFile','$timeout', function($scope, uploadFile, $timeout){
+         
+    $scope.file = {};
+    $scope.message = false;
+    $scope.alert = '';
+    $scope.default = 'https://thebenclark.files.wordpress.com/2014/03/facebook-default-no-profile-pic.jpg';
+
+	
+ $scope.Submit = function() {
+        $scope.uploading = true;
+        uploadFile.upload($scope.file).then(function(data) {
+            if (data.data.success) {
+                $scope.uploading = false;
+                $scope.alert = 'alert alert-success';
+                $scope.message = data.data.message;
+                $scope.file = {};
+            } else {
+                $scope.uploading = false;
+                $scope.alert = 'alert alert-danger';
+                $scope.message = data.data.message;
+                $scope.file = {};
+            }
+        });
+    };
+	
+	  $scope.photoChanged = function(files) {
+        if (files.length > 0 && files[0].name.match(/\.(png|jpeg|jpg)$/)) {
+            $scope.uploading = true;
+            var file = files[0];
+            var fileReader = new FileReader();
+            fileReader.readAsDataURL(file);
+            fileReader.onload = function(e) {
+                $timeout(function() {
+                    $scope.thumbnail = {};
+                    $scope.thumbnail.dataUrl = e.target.result;
+                    $scope.uploading = false;
+                    $scope.message = false;
+                });
+            };
+        } else {
+            $scope.thumbnail = {};
+            $scope.message = false;
+        }
+    };
+
+		   
+		   
+		   
+         }]);
+
 
 myapp.controller('customController', function($scope){	
 
