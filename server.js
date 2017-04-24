@@ -1,11 +1,30 @@
 var express = require('express');
 var app = express();
 var bodyparser = require('body-parser');
-var busboyBodyParser = require('busboy-body-parser');
+//var busboyBodyParser = require('busboy-body-parser');
+var cors = require('cors');
+var morgan = require('morgan');
+
+var multer= require('multer');
+var upload = multer({dest :'uploads/'});
+
+app.use(cors());
+app.use(function(req, res, next) {
+  res.header("Access-Control-Allow-Origin", "*");
+  res.header("Access-Control-Allow-Headers", "Origin, X-Requested-With, Content-Type, Accept");
+  res.header('Access-Control-Allow-Methods', 'GET,PUT,POST,DELETE');
+  next();
+});
+
+
+
+
 app.use(bodyparser.urlencoded({ extended: false }));
 app.use(bodyparser.json());
-app.use(busboyBodyParser());
+//app.use(busboyBodyParser());
 app.use(express.static(__dirname + '/public'));
+
+
 
 
 //setup mongoose connection
@@ -105,7 +124,7 @@ rstream.on('data', function(chunk) {
 });
 	
 	
-app.route('/upload').get(function(req, res) {
+/*app.route('/upload').get(function(req, res) {
  
 	gfs.files.find({}).toArray(function (err, files) {
  
@@ -137,7 +156,7 @@ app.route('/upload').get(function(req, res) {
 		});
 	});
  
-});
+});*/
 
 /*db.once('open' , function(){
 	
@@ -192,11 +211,21 @@ var employeeSchema = mongoose.Schema({
 	 age : Number
 });
 
+var tradeSchema = mongoose.Schema({
+	 tradeDetail:{type : String},
+     tradeMistakes:{type : String},
+	 image : String
+});
+
 var listModel = mongoose.model('listMod' , listSchema);
 
 var paginationModel = mongoose.model('paginationMod' , paginationSchema);
 
 var employeeModel = mongoose.model('employeeMod' , employeeSchema);
+
+
+var tradeModel = mongoose.model('tradeMod' , tradeSchema);
+
 
 
 
@@ -255,6 +284,51 @@ var employeeRouter = express.Router();
 
 var uploadRouter = express.Router();
 
+var uploadTradeRouter = express.Router();
+
+
+ uploadTradeRouter.post('/trade' , upload.any() , function(req, res, next){
+	
+	 
+	 if(req.files){		 
+			 var filename = (new Date).valueOf()+"-"+ req.files[0].originalname;
+			 
+         fs.rename(req.files[0].path ,'public/images/'+filename, function(err){
+                
+				if(err) throw err;				
+				var tradeData = new tradeModel({
+                     tradeDetail :req.body.tradeDetail,
+                     tradeMistakes:req.body.tradeMistakes,
+                     image: filename
+                });				
+				
+				tradeData.save(function(error){
+					console.log('before error called');
+					if (error)
+                     res.send(error);	
+console.log('before success called');				 
+					res.json({ message: 'doc updated!'});
+				
+				});				
+          });		  
+			 
+	 }
+ });
+ 
+  uploadTradeRouter.get('/trade', function(req, res){
+console.log('get data called');	  
+      tradeModel.find(function(err, doc){
+		if(err){
+		console.log('error occurs');
+	    }
+		else{
+			console.log('success occurs');
+			 res.json({ message: 'doc updated!' , docum : doc });	
+		}		
+	})  
+});
+
+
 
 
 
@@ -287,9 +361,7 @@ var uploadRouter = express.Router();
   
   });
   
-  router.get('/about', function(req, res){
-	  
-	  
+  router.get('/about', function(req, res){	  
       listModel.find(function(err, doc){
 		if(err){
 		console.log('error occurs');
@@ -415,17 +487,16 @@ var uploadRouter = express.Router();
     });
   
   
-  uploadRouter.route('/pic').post(function(req, res) {
   
-    var data = req;
- 
-       console.log('received data is' + data); 
-  
-    });
 
 app.use('/api' , router);
 app.use('/employee' , employeeRouter);
 app.use('/upload' , uploadRouter);
+app.use('/uploadTradeData' , uploadTradeRouter);
+
+
+
+
 
 //var port  = process.env.PORT || 3000;
 

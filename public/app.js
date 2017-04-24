@@ -23,7 +23,7 @@ myapp.config(function($urlRouterProvider, $stateProvider){
 	.state('emberjs' ,{
 		url :'/emberjs',
 		templateUrl :'template/uploadedchart.html',
-		controller :'emberjsController'		
+		controller :'doneChartsUploadController'		
 	})
 	.state('reactjs' ,{
 		url :'/reactjs',
@@ -32,8 +32,8 @@ myapp.config(function($urlRouterProvider, $stateProvider){
 		})
 	.state('redux' ,{
 		url :'/redux',
-		template :'<div class="alert alert-info" >Hello world redux</div>',
-		controller :'reduxController'
+		templateUrl :'template/tradeUpload.html',
+		controller :'tradingUploadController'
 		})
     .state('mongoose' ,{
 		url :'/mongoose',
@@ -53,22 +53,69 @@ myapp.config(function($urlRouterProvider, $stateProvider){
 });
 
 
-myapp.controller('emberjsController', function($scope ,$http){	
 
-                   // $scope.thumbnail = {};
-                   // $scope.thumbnail.dataUrl = e.target.result;
+
+myapp.controller('tradingUploadController', function($scope ,$http ,$timeout){	
+
+$scope.trade = {};
+ $scope.message = false;
+$scope.Submit = function(){	
+	 $scope.uploading = true;
+	var formdata = new FormData();
+	
+	for(key in $scope.trade){		
+		formdata.append(key , $scope.trade[key]);
+	}
+	
+	var file= $("#file")[0].files[0];
+    formdata.append('image' ,file);
+	
+	console.log('formdata length' + formdata.length);  
+		 
+		  return $http.post('/uploadTradeData/trade', formdata, {
+            transformRequest: angular.identity,
+            headers: { 'Content-Type': undefined }
+			}).success(function(){
+				console.log('success called');
+				$scope.uploading = false;
+				 $scope.message = "Successfully loaded";
+			});	
+};
+
+
+  $scope.photoChanged = function(files) {
+        if (files.length > 0 && files[0].name.match(/\.(png|jpeg|jpg)$/)) {
+            $scope.uploading = true;
+            var file = files[0];
+            var fileReader = new FileReader();
+            fileReader.readAsDataURL(file);
+            fileReader.onload = function(e) {
+                $timeout(function() {
+                    $scope.thumbnail = {};
+                    $scope.thumbnail.dataUrl = e.target.result;
+                    $scope.uploading = false;
+                    $scope.message = false;
+                });
+            };
+        } else {
+            $scope.thumbnail = {};
+            $scope.message = false;
+        }
+    };
+	
+});
+
+myapp.controller('doneChartsUploadController', function($scope ,$http){	       
 			
- 
 
 $scope.dataavail = 0;
 
-		$http.get('/upload/pexels-photo-383838.jpeg').success(function(response){			 
-			 console.log('data received' + response);
-			// $scope.imagesrc = "data:image/jpeg;base64," + response;
-               $scope.imagesrc = response;			
-             $scope.dataavail = 1;			
-		 });
-				
+		$http.get('/uploadTradeData/trade').success(function(response){			 
+			 console.log('data received' + response);			
+               $scope.imageData = response.docum;
+console.log('done charts data is' + $scope.imageData);			   
+               $scope.dataavail = 1;			
+		 });		
 				
 });
 
@@ -97,17 +144,8 @@ $scope.dataavail = 0;
         return $http.post('/upload', fd, {
             transformRequest: angular.identity,
             headers: { 'Content-Type': undefined }
-        });
-		
-		
-		/*return $http.post('/upload/pic', fd).success(function(response){			 
-			 console.log('some success occurs');
-					 
-		 });*/
-		 
-		 
+        });	 
     };
-
 });
 		 
   myapp.controller('tradingController', ['$scope','uploadFile','$timeout', function($scope, uploadFile, $timeout){
